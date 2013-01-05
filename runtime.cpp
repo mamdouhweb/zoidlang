@@ -1,5 +1,6 @@
 #include "runtime.hpp"
 #include <algorithm>
+#include <stdexcept>
 
 zlang::garbage_collector::~garbage_collector() {
     for (auto* obj : objects) {
@@ -8,9 +9,13 @@ zlang::garbage_collector::~garbage_collector() {
 }
 
 zlang::object* zlang::garbage_collector::alloc() {
-    // TODO: Make this exception-safe.
     auto* obj = new object;
-    objects.insert(obj);
+    try {
+        objects.insert(obj);
+    } catch (std::bad_alloc const&) {
+        delete obj;
+        throw;
+    }
     return obj;
 }
 
@@ -23,7 +28,6 @@ void zlang::garbage_collector::remove_root(object* obj) {
 }
 
 void zlang::garbage_collector::operator()() {
-    // TODO: Make this exception-safe.
     std::for_each(roots.begin(), roots.end(), &mark);
     for (auto it = objects.begin(); it != objects.end(); ++it) {
         if ((*it)->gc_marked) {
