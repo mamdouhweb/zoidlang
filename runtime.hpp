@@ -4,6 +4,7 @@
 #include <stdexcept>
 #include <functional>
 #include <set>
+#include <stack>
 #include <string>
 #include <type_traits>
 #include <unordered_map>
@@ -76,6 +77,15 @@ namespace zlang {
         boost::any value;
     };
 
+    struct stack_frame : object {
+        stack_frame(garbage_collector& gc_) : object{gc_} {}
+
+        virtual void gc_mark() override;
+        virtual void gc_unmark() override;
+
+        method_implementation* method;
+    };
+
     class garbage_collector {
     public:
         garbage_collector() = default;
@@ -121,6 +131,7 @@ namespace zlang {
         object* find_global(std::string const& name);
 
         garbage_collector gc;
+        std::stack<stack_frame*> call_stack;
 
     private:
         object* global;

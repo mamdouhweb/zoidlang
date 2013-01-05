@@ -63,7 +63,6 @@ void zlang::klass::gc_unmark() {
     for (auto& member : members) member.second->gc_unmark();
 }
 
-
 zlang::object* zlang::method_implementation::send_message(
     std::string const& selector,
     std::vector<object*> const& args
@@ -81,6 +80,21 @@ zlang::object* zlang::cxx_object::send_message(
 ) {
     throw bad_selector{selector};
 }
+
+void zlang::stack_frame::gc_mark() {
+    if (gc_marked) return;
+    gc_marked = true;
+    method->gc_mark();
+    for (auto& member : members) member.second->gc_mark();
+}
+
+void zlang::stack_frame::gc_unmark() {
+    if (!gc_marked) return;
+    gc_marked = false;
+    method->gc_unmark();
+    for (auto& member : members) member.second->gc_unmark();
+}
+
 
 zlang::garbage_collector::~garbage_collector() {
     for (auto* obj : objects) {
