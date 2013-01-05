@@ -119,6 +119,37 @@ zlang::token zlang::lexer::next() {
         return mktok(token::NUMBER, number, idx);
     }
 
+    switch (curc()) {
+        case '(': return mktok(token::LPAREN, index++);
+        case ')': return mktok(token::RPAREN, index++);
+        case '[': return mktok(token::LBRACKET, index++);
+        case ']': return mktok(token::RBRACKET, index++);
+        case '{': return mktok(token::LBRACE, index++);
+        case '}': return mktok(token::RBRACE, index++);
+
+        case '=':
+            if (nextc() == '=') return mktok(token::EQ_EQ, index++);
+            return mktok(token::EQ, index - 1);
+
+        case '+':
+            if (nextc() == '=') return mktok(token::PLUS_EQ, index++);
+            return mktok(token::PLUS, index - 1);
+        case '-':
+            switch (nextc()) {
+                case '=': return mktok(token::MINUS_EQ, index++);
+                case '>': return mktok(token::ARROW, index++);
+                default: return mktok(token::MINUS, index - 1);
+            }
+        case '*':
+            if (nextc() == '=') return mktok(token::STAR_EQ, index++);
+            return mktok(token::STAR, index - 1);
+        case '/':
+            if (nextc() == '=') return mktok(token::SLASH_EQ, index++);
+            return mktok(token::SLASH, index - 1);
+
+        case ',': return mktok(token::COMMA, index++);
+    }
+
     throw bad_token{index};
 }
 

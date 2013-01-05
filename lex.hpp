@@ -40,6 +40,28 @@ namespace zlang {
             ELSE,
 
             UNREACHABLE,
+
+            LPAREN,
+            RPAREN,
+            LBRACKET,
+            RBRACKET,
+            LBRACE,
+            RBRACE,
+
+            EQ,
+            EQ_EQ,
+
+            PLUS,
+            PLUS_EQ,
+            MINUS,
+            MINUS_EQ,
+            STAR,
+            STAR_EQ,
+            SLASH,
+            SLASH_EQ,
+
+            ARROW,
+            COMMA,
         } kind;
         boost::optional<std::string> value;
         std::size_t index;
