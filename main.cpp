@@ -1,4 +1,5 @@
 #include "lex.hpp"
+#include "runtime.hpp"
 #include <iostream>
 
 int main() {
@@ -38,5 +39,11 @@ main = ->
         std::cerr << "Bad token at " << e.index << ".\n";
     }
 
+    zlang::garbage_collector gc;
+    gc.alloc();
+    gc.alloc();
+    gc.alloc();
+    gc();
+    gc.alloc();
 }
 
