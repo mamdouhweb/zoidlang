@@ -2,6 +2,7 @@
 
 #include <boost/variant.hpp>
 #include <stdexcept>
+#include <functional>
 #include <set>
 #include <string>
 #include <type_traits>
@@ -40,11 +41,23 @@ namespace zlang {
         bool gc_marked;
     };
 
+    struct klass : object {
+        klass(garbage_collector& gc_) : object{gc} {}
+
+        virtual object* send_message(std::string const& selector,
+                                     std::vector<object*> const& args) override;
+
+        klass* super;
+    };
+
     struct method_implementation : object {
         method_implementation(garbage_collector& gc_) : object{gc} {}
 
         virtual object* send_message(std::string const& selector,
                                      std::vector<object*> const& args) override;
+
+        std::function<object*(std::string const&,
+                              std::vector<object*> const&)> function;
     };
 
     class garbage_collector {

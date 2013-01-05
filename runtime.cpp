@@ -7,11 +7,31 @@ zlang::object* zlang::object::send_message(std::string const& selector,
     auto it = members.find(selector);
     if (it != members.end()) {
         return it->second;
-    } else if (isa) {
-        return isa->send_message(selector, args);
-    } else {
-        throw bad_selector{selector};
     }
+    if (isa) {
+        return isa->send_message(selector, args);
+    }
+    throw bad_selector{selector};
+}
+
+zlang::object* zlang::klass::send_message(
+    std::string const& selector,
+    std::vector<object*> const& args
+) {
+    auto it = members.find(selector);
+    if (it != members.end()) {
+        return it->second;
+    }
+    if (isa) {
+        it = isa->members.find(selector);
+        if (it != isa->members.end()) {
+            return it->second;
+        }
+    }
+    if (super) {
+        return super->send_message(selector, args);
+    }
+    throw bad_selector{selector};
 }
 
 zlang::object* zlang::method_implementation::send_message(
@@ -19,8 +39,7 @@ zlang::object* zlang::method_implementation::send_message(
     std::vector<object*> const& args
 ) {
     if (selector == "call") {
-        // TODO: Implement.
-        return nullptr;
+        return function(selector, args);
     } else {
         return object::send_message(selector, args);
     }
