@@ -57,7 +57,7 @@ namespace zlang {
         ~garbage_collector();
 
         template<class T>
-        typename std::enable_if<std::is_base_of<object, T>::value, object>::type*
+        typename std::enable_if<std::is_base_of<object, T>::value, T>::type*
         alloc() {
             auto* obj = new T{*this};
             try {
@@ -84,5 +84,7 @@ namespace zlang {
         static void mark(object* obj);
         static void unmark(object* obj);
     };
+
+    object* call_method(object* receiver, std::vector<object*> const& args);
 }
 

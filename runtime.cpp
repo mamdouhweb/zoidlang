@@ -2,10 +2,19 @@
 #include <algorithm>
 #include <stdexcept>
 
+#include <iostream>
+#include <typeinfo>
+
 zlang::object* zlang::object::send_message(std::string const& selector,
                                            std::vector<object*> const& args) {
-    // TODO: Implement.
-    return nullptr;
+    auto it = members.find(selector);
+    if (it != members.end()) {
+        return it->second;
+    } else if (isa) {
+        return isa->send_message(selector, args);
+    } else {
+        throw bad_selector{selector};
+    }
 }
 
 zlang::object* zlang::method_implementation::send_message(
@@ -16,7 +25,7 @@ zlang::object* zlang::method_implementation::send_message(
         // TODO: Implement.
         return nullptr;
     } else {
-        throw bad_selector{selector};
+        return object::send_message(selector, args);
     }
 }
 
@@ -67,5 +76,14 @@ void zlang::garbage_collector::unmark(object* obj) {
     for (auto& pair : obj->members) {
         unmark(pair.second);
     }
+}
+
+zlang::object* zlang::call_method(object* receiver,
+                                  std::vector<object*> const& args) {
+    object* obj = receiver;
+    while (!dynamic_cast<method_implementation*>(obj)) {
+        obj = obj->send_message("call", args);
+    }
+    return obj->send_message("call", args);
 }
 

@@ -45,5 +45,14 @@ main = ->
     gc.alloc<zlang::object>();
     gc();
     gc.alloc<zlang::object>();
+
+    auto* method = gc.alloc<zlang::method_implementation>();
+    auto* obj = gc.alloc<zlang::object>();
+    auto* obj2 = gc.alloc<zlang::object>();
+    obj2->members["call"] = method;
+    obj->members["call"] = obj2;
+    zlang::call_method(obj, {});
+
+    gc();
 }
 
