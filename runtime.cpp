@@ -2,21 +2,28 @@
 #include <algorithm>
 #include <stdexcept>
 
+zlang::object* zlang::object::send_message(std::string const& selector,
+                                           std::vector<object*> const& args) {
+    // TODO: Implement.
+    return nullptr;
+}
+
+zlang::object* zlang::method_implementation::send_message(
+    std::string const& selector,
+    std::vector<object*> const& args
+) {
+    if (selector == "call") {
+        // TODO: Implement.
+        return nullptr;
+    } else {
+        throw bad_selector{selector};
+    }
+}
+
 zlang::garbage_collector::~garbage_collector() {
     for (auto* obj : objects) {
         delete obj;
     }
-}
-
-zlang::object* zlang::garbage_collector::alloc() {
-    auto* obj = new object;
-    try {
-        objects.insert(obj);
-    } catch (std::bad_alloc const&) {
-        delete obj;
-        throw;
-    }
-    return obj;
 }
 
 void zlang::garbage_collector::add_root(object* obj) {

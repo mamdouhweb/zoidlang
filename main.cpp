@@ -40,10 +40,10 @@ main = ->
     }
 
     zlang::garbage_collector gc;
-    gc.alloc();
-    gc.alloc();
-    gc.alloc();
+    gc.alloc<zlang::object>();
+    gc.alloc<zlang::object>();
+    gc.alloc<zlang::object>();
     gc();
-    gc.alloc();
+    gc.alloc<zlang::object>();
 }
 
