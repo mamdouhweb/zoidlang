@@ -1,6 +1,6 @@
 #pragma once
 
-#include <boost/variant.hpp>
+#include <boost/any.hpp>
 #include <stdexcept>
 #include <functional>
 #include <set>
@@ -11,6 +11,7 @@
 
 namespace zlang {
     class garbage_collector;
+    struct klass;
 
     struct bad_selector : public std::runtime_error {
     public:
@@ -35,29 +36,38 @@ namespace zlang {
         virtual object* send_message(std::string const& selector,
                                      std::vector<object*> const& args);
 
-        object* isa;
+        klass* isa;
         std::unordered_map<std::string, object*> members;
         garbage_collector& gc;
         bool gc_marked;
     };
 
     struct klass : object {
-        klass(garbage_collector& gc_) : object{gc} {}
+        klass(garbage_collector& gc_) : object{gc_} {}
 
         virtual object* send_message(std::string const& selector,
                                      std::vector<object*> const& args) override;
 
+        std::string name;
         klass* super;
     };
 
     struct method_implementation : object {
-        method_implementation(garbage_collector& gc_) : object{gc} {}
+        method_implementation(garbage_collector& gc_) : object{gc_} {}
 
         virtual object* send_message(std::string const& selector,
                                      std::vector<object*> const& args) override;
 
-        std::function<object*(std::string const&,
-                              std::vector<object*> const&)> function;
+        std::function<object*(std::vector<object*> const&)> function;
+    };
+
+    struct cxx_object : object {
+        cxx_object(garbage_collector& gc_) : object{gc_} {}
+
+        virtual object* send_message(std::string const& selector,
+                                     std::vector<object*> const& args) override;
+
+        boost::any value;
     };
 
     class garbage_collector {
@@ -98,6 +108,20 @@ namespace zlang {
         static void unmark(object* obj);
     };
 
+    class runtime {
+    public:
+        runtime();
+
+        object* find_global(std::string const& name);
+
+        garbage_collector gc;
+
+    private:
+        object* global;
+    };
+
     object* call_method(object* receiver, std::vector<object*> const& args);
+    klass* make_class(garbage_collector& gc, std::string const& name,
+                      klass* super, klass* object_class);
 }
 
