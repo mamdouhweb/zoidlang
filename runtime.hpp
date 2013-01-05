@@ -36,6 +36,9 @@ namespace zlang {
         virtual object* send_message(std::string const& selector,
                                      std::vector<object*> const& args);
 
+        virtual void gc_mark();
+        virtual void gc_unmark();
+
         klass* isa;
         std::unordered_map<std::string, object*> members;
         garbage_collector& gc;
@@ -47,6 +50,9 @@ namespace zlang {
 
         virtual object* send_message(std::string const& selector,
                                      std::vector<object*> const& args) override;
+
+        virtual void gc_mark() override;
+        virtual void gc_unmark() override;
 
         std::string name;
         klass* super;

@@ -15,6 +15,18 @@ zlang::object* zlang::object::send_message(std::string const& selector,
     throw bad_selector{selector};
 }
 
+void zlang::object::gc_mark() {
+    if (gc_marked) return;
+    gc_marked = true;
+    for (auto& member : members) member.second->gc_mark();
+}
+
+void zlang::object::gc_unmark() {
+    if (!gc_marked) return;
+    gc_marked = false;
+    for (auto& member : members) member.second->gc_unmark();
+}
+
 zlang::object* zlang::klass::send_message(
     std::string const& selector,
     std::vector<object*> const& args
@@ -34,6 +46,23 @@ zlang::object* zlang::klass::send_message(
     }
     throw bad_selector{selector};
 }
+
+void zlang::klass::gc_mark() {
+    if (gc_marked) return;
+    gc_marked = true;
+    if (isa) isa->gc_mark();
+    if (super) super->gc_mark();
+    for (auto& member : members) member.second->gc_mark();
+}
+
+void zlang::klass::gc_unmark() {
+    if (!gc_marked) return;
+    gc_marked = false;
+    if (isa) isa->gc_unmark();
+    if (super) super->gc_unmark();
+    for (auto& member : members) member.second->gc_unmark();
+}
+
 
 zlang::object* zlang::method_implementation::send_message(
     std::string const& selector,
@@ -68,14 +97,14 @@ void zlang::garbage_collector::remove_root(object* obj) {
 }
 
 void zlang::garbage_collector::operator()() {
-    std::for_each(roots.begin(), roots.end(), &mark);
+    for (auto* root : roots) root->gc_mark();
     for (auto it = objects.begin(); it != objects.end(); ++it) {
-        if ((*it)->gc_marked) {
+        if (!(*it)->gc_marked) {
             delete *it;
             objects.erase(it);
         }
     }
-    std::for_each(roots.begin(), roots.end(), &unmark);
+    for (auto* root : roots) root->gc_unmark();
 }
 
 std::size_t zlang::garbage_collector::objects_count() const {
@@ -86,35 +115,16 @@ std::size_t zlang::garbage_collector::roots_count() const {
     return roots.size();
 }
 
-void zlang::garbage_collector::mark(object* obj) {
-    if (obj->gc_marked) return;
-    obj->gc_marked = true;
-    if (obj->isa) mark(obj->isa);
-    if (dynamic_cast<klass*>(obj)) mark(static_cast<klass*>(obj)->super);
-    for (auto& pair : obj->members) {
-        mark(pair.second);
-    }
-}
-
-void zlang::garbage_collector::unmark(object* obj) {
-    if (!obj->gc_marked) return;
-    obj->gc_marked = false;
-    if (obj->isa) unmark(obj->isa);
-    if (dynamic_cast<klass*>(obj)) unmark(static_cast<klass*>(obj)->super);
-    for (auto& pair : obj->members) {
-        unmark(pair.second);
-    }
-}
-
 zlang::runtime::runtime() {
     global = gc.alloc<object>();
     gc.add_root(global);
 
     // TODO: Move these class definitions to separate files.
 
-    klass* Object = make_class(gc, "Object", Object, nullptr);
-    klass* Class = make_class(gc, "Class", Object, Class);
+    klass* Object = make_class(gc, "Object", nullptr, nullptr);
+    klass* Class = make_class(gc, "Class", Object, nullptr);
     Object->isa = Class;
+    Class->isa = Class;
 
     auto* Object_init_imp = gc.alloc<method_implementation>();
     Object_init_imp->function =
@@ -181,6 +191,7 @@ zlang::runtime::runtime() {
             return make_class(gc, name, super,
                               static_cast<klass*>(find_global("Class")));
         };
+    Class->members["call"] = Class_call_imp;
 
     klass* String = make_class(gc, "String", Object, Class);
 
