@@ -2,9 +2,6 @@
 #include <algorithm>
 #include <stdexcept>
 
-#include <iostream>
-#include <typeinfo>
-
 zlang::object* zlang::object::send_message(std::string const& selector,
                                            std::vector<object*> const& args) {
     auto it = members.find(selector);
