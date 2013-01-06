@@ -3,8 +3,10 @@
 #include <boost/variant.hpp>
 #include <stdexcept>
 #include <memory>
+#include <set>
 #include <stack>
 #include <string>
+#include <type_traits>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -116,6 +118,54 @@ namespace zlang {
         byte_code* code;
     };
 
+    class garbage_collector {
+    public:
+        garbage_collector() = default;
+        garbage_collector(garbage_collector const&) = delete;
+        garbage_collector(garbage_collector&&) = default;
+        garbage_collector& operator=(garbage_collector const&) = delete;
+        garbage_collector& operator=(garbage_collector&&) = default;
+        ~garbage_collector() {
+            for (auto* obj : objects) delete obj;
+        }
+
+        template<class T, class... Args>
+        typename std::enable_if<std::is_base_of<gc_object, T>::value, T*>::type
+        alloc(Args&&... args) {
+            auto* obj = new T(std::forward<Args>(args)...);
+            try {
+                objects.insert(obj);
+            } catch (...) {
+                delete obj;
+                throw;
+            }
+            return obj;
+        }
+
+        void add_root(gc_object* obj) {
+            roots.insert(obj);
+        }
+
+        void remove_root(gc_object* obj) {
+            roots.erase(obj);
+        }
+
+        void operator()() {
+            for (auto* obj : roots) obj->mark();
+            for (auto* obj : objects) {
+                if (!obj->marked) {
+                    delete obj;
+                    objects.erase(obj);
+                }
+            }
+            for (auto* obj : roots) obj->unmark();
+        }
+
+    private:
+        std::set<gc_object*> objects;
+        std::set<gc_object*> roots;
+    };
+
 #define VM_ERROR(name) \
     class name : public vm_error { \
     public: \
@@ -133,6 +183,46 @@ namespace zlang {
     VM_ERROR(stack_underflow_error);
     VM_ERROR(bad_opcode);
 
+    template<class T>
+    class gc_stack {
+    public:
+        static_assert(std::is_base_of<gc_object, T>::value, "");
+
+        gc_stack(garbage_collector& gc_) : gc{gc_} {}
+        gc_stack(gc_stack const&) = delete;
+        gc_stack(gc_stack&&) = default;
+        gc_stack& operator=(gc_stack const&) = delete;
+        gc_stack& operator=(gc_stack&&) = default;
+        ~gc_stack() {
+            while (!stack.empty()) {
+                gc.remove_root(stack.top());
+                stack.pop();
+            }
+        }
+
+        void push(T* obj) {
+            stack.push(obj);
+            gc.add_root(obj);
+        }
+
+        T* top() const {
+            return stack.top();
+        }
+
+        void pop() {
+            gc.remove_root(stack.top());
+            stack.pop();
+        }
+
+        bool empty() const {
+            return stack.empty();
+        }
+
+    private:
+        garbage_collector& gc;
+        std::stack<T*> stack;
+    };
+
     struct vm {
         enum opcode : std::size_t {
             NOP = 0,
@@ -145,6 +235,8 @@ namespace zlang {
 
             EXIT = 30,
         };
+
+        vm() : data_stack{gc}, call_stack{gc} {};
 
         void operator()() {
             if (call_stack.empty()) {
@@ -203,22 +295,11 @@ namespace zlang {
             }
         }
 
-        // TODO: Implement a real GC. :)
-        class {
-        public:
-            // TODO: Enable iff subclass of gc_object.
-            template<class T, class... Args>
-            T* alloc(Args&&... args) {
-                return new T(std::forward<Args>(args)...);
-            }
-
-            void add_root(gc_object* obj) {}
-            void remove_root(gc_object* obj) {}
-        } gc;
+        garbage_collector gc;
 
         std::size_t pc;
-        std::stack<object*> data_stack;
-        std::stack<stack_frame*> call_stack;
+        gc_stack<object> data_stack;
+        gc_stack<stack_frame> call_stack;
 
     private:
         std::size_t at(std::size_t index) {
