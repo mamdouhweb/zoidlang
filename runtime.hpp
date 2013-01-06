@@ -116,14 +116,22 @@ namespace zlang {
         byte_code* code;
     };
 
-    class bad_opcode : public std::runtime_error {
-    public:
-        bad_opcode(std::size_t opcode_)
-        : opcode{opcode_}
-        , std::runtime_error{"bad opcode"} {}
+#define VM_ERROR(name) \
+    class name : public vm_error { \
+    public: \
+        name (std::string const& e) : vm_error{e} {} \
+        name (char const* e) : vm_error{e} {} \
+    }
 
-        std::size_t opcode;
+    class vm_error : public std::runtime_error {
+    public:
+        vm_error(std::string const& e) : std::runtime_error{e} {}
+        vm_error(char const* e) : std::runtime_error{e} {}
     };
+
+    VM_ERROR(no_stack_frame_error);
+    VM_ERROR(stack_underflow_error);
+    VM_ERROR(bad_opcode);
 
     struct vm {
         enum opcode : std::size_t {
@@ -139,11 +147,20 @@ namespace zlang {
         };
 
         void operator()() {
+            if (call_stack.empty()) {
+                throw no_stack_frame_error{"missing initial stack frame"};
+            }
+
             for (;;) {
                 switch (at(pc)) {
                     case NOP: break;
 
-                    case POP: data_stack.pop(); break;
+                    case POP: {
+                        if (data_stack.empty()) {
+                            throw stack_underflow_error{"stack underflow"};
+                        }
+                        data_stack.pop();
+                    } break;
 
                     case JUMP: pc = at(++pc); break;
                     case CALL: {
@@ -151,7 +168,7 @@ namespace zlang {
                         data_stack.pop();
 
                         if (!dynamic_cast<function*>(func)) {
-                            throw bad_opcode{at(pc)};
+                            throw vm_error{"expected function object"};
                         }
                         auto& f = static_cast<function*>(func)->implementation;
 
@@ -180,7 +197,7 @@ namespace zlang {
 
                     case EXIT: return;
 
-                    default: throw bad_opcode{at(pc)};
+                    default: throw bad_opcode{"bad opcode"};
                 }
                 ++pc;
             }
