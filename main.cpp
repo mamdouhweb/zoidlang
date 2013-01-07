@@ -1,4 +1,4 @@
-#include "runtime.hpp"
+#include "vm.hpp"
 
 int main() {
     std::vector<std::size_t> byte_code{
