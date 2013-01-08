@@ -73,6 +73,28 @@ void zlang::vm::operator()() {
                 // TODO: Remove attribute from object.
             } break;
 
+            case SET_EXCEPTION_HANDLER: {
+                auto handler = at(++pc);
+                call_stack.top()->exception_handler = handler;
+            } break;
+            case UNSET_EXCEPTION_HANDLER: {
+                call_stack.top()->exception_handler = boost::none;
+            } break;
+            case THROW: {
+                for (;;) {
+                    if (call_stack.empty()) {
+                        throw unhandled_exception{"unhandled exception"};
+                    }
+
+                    auto* frame = call_stack.top();
+                    if (frame->exception_handler) {
+                        pc = *frame->exception_handler;
+                    } else {
+                        call_stack.pop();
+                    }
+                }
+            } break;
+
             case EXIT: return;
 
             default: throw bad_opcode{"bad opcode"};

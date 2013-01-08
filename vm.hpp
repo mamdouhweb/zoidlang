@@ -2,6 +2,7 @@
 
 #include "gc.hpp"
 #include "object.hpp"
+#include <boost/optional.hpp>
 #include <boost/variant.hpp>
 #include <stdexcept>
 #include <memory>
@@ -69,6 +70,7 @@ namespace zlang {
         }
 
         std::size_t ret_to;
+        boost::optional<std::size_t> exception_handler;
         function* func;
         byte_code* code;
     };
@@ -89,6 +91,7 @@ namespace zlang {
     VM_ERROR(no_stack_frame_error);
     VM_ERROR(stack_underflow_error);
     VM_ERROR(bad_opcode);
+    VM_ERROR(unhandled_exception);
 
     template<class T>
     class gc_stack {
@@ -144,6 +147,10 @@ namespace zlang {
             OBJ_GET = 30,
             OBJ_SET = 31,
             OBJ_UNSET = 32,
+
+            SET_EXCEPTION_HANDLER = 40,
+            UNSET_EXCEPTION_HANDLER = 41,
+            THROW = 42,
 
             EXIT = 100,
         };
