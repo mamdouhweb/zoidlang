@@ -139,6 +139,7 @@ namespace zlang {
             NOP = 0,
 
             POP = 10,
+            SWAP = 11,
 
             JUMP = 20,
             CALL = 21,

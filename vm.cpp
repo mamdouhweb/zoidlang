@@ -15,6 +15,14 @@ void zlang::vm::operator()() {
                 }
                 data_stack.pop();
             } break;
+            case SWAP: {
+                auto* a = data_stack.top();
+                data_stack.pop();
+                auto* b = data_stack.top();
+                data_stack.pop();
+                data_stack.push(a);
+                data_stack.push(b);
+            } break;
 
             case JUMP: pc = at(++pc); break;
             case CALL: {
