@@ -97,6 +97,7 @@ void zlang::vm::operator()() {
                     auto* frame = call_stack.top();
                     if (frame->exception_handler) {
                         pc = *frame->exception_handler;
+                        break;
                     } else {
                         call_stack.pop();
                     }
